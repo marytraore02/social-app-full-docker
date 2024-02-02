@@ -1,0 +1,62 @@
+version: "3.8"
+# Notre API NestJS
+services:
+  api:
+    build: 
+      dockerfile: Dockerfile
+      context: ./api
+      # Construire uniquement l'étape de développement à partir de Dockerfile
+      target: development
+    # Montez notre répertoire hôte sur le conteneur Docker
+    # Monter le répertoire API (./api) sur (:) le conteneur Docker (/thomas/src/app)
+    # Refléter les modifications du fichier de l'hôte au conteneur
+    volumes:
+      - ./api:/marytraore/src/app
+      - /marytraore/src/app/node_modules/
+    # RUN en mode débogage : npm run start:debug --> Démarrez également votre débogueur vscode
+    # Exécuter en mode développement : npm run start:dev
+    command: npm run start:debug
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5432/db
+      NODE_ENV: development
+      # JWT_SECRET: hard_to_guess_secret_123
+      PORT: 3000
+    ports:
+        - 3000:3000
+        - 9229:9229
+
+  # Our Angular Frontend
+  frontend:
+    build:
+      dockerfile: Dockerfile
+      context: ./frontend
+      target: development
+    command: npm run start
+    volumes:
+      - ./frontend:/marytraore/frontend/src/app
+      - /marytraore/frontend/src/app/node_modules
+    ports:
+      - 4200:4200
+    links:
+      - api
+  
+  postgres:
+    image: postgres:10.4
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db
+    ports:
+      - 35000:5432
+
+  postgres_admin:
+    image: dpage/pgadmin4:4.28
+    depends_on:
+      - postgres
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    ports:
+      - 5050:80
